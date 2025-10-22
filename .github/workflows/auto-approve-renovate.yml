@@ -1,0 +1,45 @@
+name: Auto Approve Renovate PRs
+
+on:
+  # PRのチェック実行が完了したときにトリガー
+  check_run:
+    types: [completed]
+  # PRのステータスが変更されたときにトリガー
+  status: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: context
+        run: echo "${{ toJSON(github) }}"
+      - name: Get PR number from check_run event
+        id: get-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # check_run イベントの場合
+          if [ "${{ github.event_name }}" = "check_run" ]; then
+            PR_NUMBER=$(echo '${{ toJSON(github.event.check_run.pull_requests) }}' | jq -r '.[0].number // empty')
+          # status イベントの場合
+          elif [ "${{ github.event_name }}" = "status" ]; then
+            BRANCH="${{ github.event.branches[0].name }}"
+            if [ -n "$BRANCH" ]; then
+              PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+            fi
+          fi
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found"
+            echo "should_continue=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "should_continue=true" >> $GITHUB_OUTPUT
+          echo "Found PR #$PR_NUMBER"
