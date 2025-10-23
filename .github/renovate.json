@@ -4,6 +4,9 @@
   "labels": ["renovate"],
   "prHourlyLimit": 2,
   "prConcurrentLimit": 0,
+  "major": {
+    "enabled": false
+  },
   "dependencyDashboard": true,
   "timezone": "Asia/Tokyo",
   "reviewers": ["ryo246912"],
